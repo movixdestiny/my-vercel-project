@@ -56,16 +56,51 @@ export default async function handler(req, res) {
         const m3u8Response = await fetch(m3u8Url);
         const m3u8Data = await m3u8Response.text();
 
-        console.log('M3U8 Playlist Data:', m3u8Data.substring(0, 500)); // Log first 500 chars for brevity
+        // Initialize variables to store filtered URLs
+        let frenchAudioUrl = null;
+        let videoUrl = null;
 
-        // Filter M3U8 playlist for French audio and 720p video
-        const filteredM3u8 = m3u8Data
-            .split('\n')
-            .filter(line => line.includes('LANGUAGE="fra"') || line.includes('720p'))
-            .join('\n');
+        // Process the M3U8 playlist
+        const lines = m3u8Data.split('\n');
+        let i = 0;
+        while (i < lines.length) {
+            const line = lines[i].trim();
 
+            if (line.startsWith('#EXT-X-MEDIA') && line.includes('LANGUAGE="fra"')) {
+                // Extract French audio URL
+                const audioMatch = line.match(/URI="([^"]+)"/);
+                if (audioMatch) {
+                    frenchAudioUrl = audioMatch[1];
+                }
+            }
+
+            if (line.startsWith('#EXT-X-STREAM-INF')) {
+                // Look for 720p video stream
+                if (line.includes('RESOLUTION=1280x720')) {
+                    // Get the video URL from the next line
+                    const videoUrlLine = lines[i + 1].trim();
+                    if (videoUrlLine) {
+                        videoUrl = videoUrlLine;
+                    }
+                }
+            }
+
+            i++;
+        }
+
+        if (!frenchAudioUrl || !videoUrl) {
+            throw new Error('French audio URL or 720p video URL not found in M3U8 playlist');
+        }
+
+        // Construct the filtered M3U8 playlist
+        const filteredM3U8 = `
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="aac",LANGUAGE="fra",NAME="French",DEFAULT=NO,URI="${frenchAudioUrl}"
+#EXT-X-STREAM-INF:BANDWIDTH=40000000,AUDIO="aac",DEFAULT=YES,RESOLUTION=1280x720,CLOSED-CAPTIONS=NONE
+${videoUrl}`;
+
+        // Return filtered M3U8 playlist directly
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-        res.status(200).send(filteredM3u8);
+        res.status(200).send(filteredM3U8);
     } catch (error) {
         console.error('Error:', error.message);
         res.status(500).json({ error: 'Internal Server Error' });
