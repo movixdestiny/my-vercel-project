@@ -1,3 +1,5 @@
+// pages/api/getVideo.js
+
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
@@ -18,6 +20,7 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
+      console.error(`Failed to fetch Netflix ID. Status: ${response.status}`);
       return res.status(response.status).json({ error: 'Failed to fetch Netflix ID' });
     }
 
@@ -25,6 +28,7 @@ export default async function handler(req, res) {
     const netflixId = data.streamingOptions.find(option => option.type === 'subscription' && option.service === 'netflix')?.id;
 
     if (!netflixId) {
+      console.error('Netflix ID not found');
       return res.status(404).json({ error: 'Netflix ID not found' });
     }
 
@@ -32,6 +36,7 @@ export default async function handler(req, res) {
     const m3u8Response = await fetch(`https://proxy.smashystream.com/proxy/echo1/https://pcmirror.cc/hls/${netflixId}.m3u8`);
 
     if (!m3u8Response.ok) {
+      console.error(`Failed to fetch M3U8 playlist. Status: ${m3u8Response.status}`);
       return res.status(m3u8Response.status).json({ error: 'Failed to fetch M3U8 playlist' });
     }
 
@@ -46,6 +51,7 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     res.status(200).send(filteredM3U8);
   } catch (error) {
+    console.error('Internal Server Error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 }
