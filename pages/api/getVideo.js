@@ -16,28 +16,38 @@ export default async function handler(req, res) {
     };
 
     try {
+        console.log(`Fetching data from API: ${apiUrl}`);
         const response = await fetch(apiUrl, { headers: apiHeaders });
         const data = await response.json();
 
-        console.log('API Response:', data);
+        console.log('API Response:', JSON.stringify(data, null, 2));
 
         // Check if result and videoLink exist
-        if (!data.result || !data.result.videoLink) {
-            throw new Error('Video link not found in API response');
+        if (!data.result) {
+            throw new Error('Result not found in API response');
+        }
+
+        if (!data.result.videoLink) {
+            throw new Error('Video link not found in result');
         }
 
         // Extract the Netflix ID
         const netflixUrl = data.result.videoLink;
+        console.log('Netflix URL:', netflixUrl);
         const netflixIdMatch = netflixUrl.match(/watch\/(\d+)/);
         if (!netflixIdMatch) {
             throw new Error('Netflix ID not found in video link');
         }
         const netflixId = netflixIdMatch[1];
+        console.log('Netflix ID:', netflixId);
 
         // Fetch M3U8 playlist
         const m3u8Url = `https://proxy.smashystream.com/proxy/echo1/https://pcmirror.cc/hls/${netflixId}.m3u8`;
+        console.log(`Fetching M3U8 playlist from URL: ${m3u8Url}`);
         const m3u8Response = await fetch(m3u8Url);
         const m3u8Data = await m3u8Response.text();
+
+        console.log('M3U8 Playlist Data:', m3u8Data.substring(0, 500)); // Log first 500 chars for brevity
 
         // Filter M3U8 playlist for French audio and 720p video
         const filteredM3u8 = m3u8Data
