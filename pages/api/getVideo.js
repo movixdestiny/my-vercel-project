@@ -93,8 +93,7 @@ export default async function handler(req, res) {
         }
 
         // Construct the filtered M3U8 playlist
-        const filteredM3U8 = `
-#EXTM3U
+        const filteredM3U8 = `#EXTM3U
 #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="aac",LANGUAGE="fra",NAME="French",DEFAULT=NO,URI="${frenchAudioUrl}"
 #EXT-X-STREAM-INF:BANDWIDTH=40000000,AUDIO="aac",DEFAULT=YES,RESOLUTION=1280x720,CLOSED-CAPTIONS=NONE
 ${videoUrl}`;
