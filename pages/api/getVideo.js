@@ -22,24 +22,33 @@ export default async function handler(req, res) {
 
         console.log('API Response:', JSON.stringify(data, null, 2));
 
-        // Check if result and videoLink exist
-        if (!data.result) {
-            throw new Error('Result not found in API response');
+        // Check if result and streamingInfo exist
+        if (!data.result || !data.result.streamingInfo) {
+            throw new Error('Streaming info not found in API response');
         }
 
-        if (!data.result.videoLink) {
-            throw new Error('Video link not found in result');
+        // Navigate to find Netflix videoLink
+        let netflixId = null;
+        for (const region in data.result.streamingInfo) {
+            const services = data.result.streamingInfo[region];
+            if (Array.isArray(services)) {
+                for (const service of services) {
+                    if (service.service === 'netflix' && service.videoLink) {
+                        netflixId = service.videoLink.match(/watch\/(\d+)/);
+                        if (netflixId) {
+                            netflixId = netflixId[1];
+                            console.log('Netflix ID:', netflixId);
+                            break;
+                        }
+                    }
+                }
+                if (netflixId) break;
+            }
         }
 
-        // Extract the Netflix ID
-        const netflixUrl = data.result.videoLink;
-        console.log('Netflix URL:', netflixUrl);
-        const netflixIdMatch = netflixUrl.match(/watch\/(\d+)/);
-        if (!netflixIdMatch) {
-            throw new Error('Netflix ID not found in video link');
+        if (!netflixId) {
+            throw new Error('Netflix ID not found in streaming info');
         }
-        const netflixId = netflixIdMatch[1];
-        console.log('Netflix ID:', netflixId);
 
         // Fetch M3U8 playlist
         const m3u8Url = `https://proxy.smashystream.com/proxy/echo1/https://pcmirror.cc/hls/${netflixId}.m3u8`;
