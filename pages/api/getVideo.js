@@ -6,6 +6,7 @@ export default async function handler(req, res) {
   const { tmdbid } = req.query;
 
   if (!tmdbid) {
+    console.error('tmdbid is required');
     return res.status(400).json({ error: 'tmdbid is required' });
   }
 
@@ -20,11 +21,20 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      console.error(`Failed to fetch Netflix ID. Status: ${response.status}`);
+      const errorBody = await response.text();
+      console.error(`Failed to fetch Netflix ID. Status: ${response.status}, Body: ${errorBody}`);
       return res.status(response.status).json({ error: 'Failed to fetch Netflix ID' });
     }
 
     const data = await response.json();
+
+    // Check the structure of the API response
+    if (!data.streamingOptions || !Array.isArray(data.streamingOptions)) {
+      console.error('Unexpected response structure:', data);
+      return res.status(500).json({ error: 'Unexpected response structure' });
+    }
+
+    // Find Netflix ID
     const netflixId = data.streamingOptions.find(option => option.type === 'subscription' && option.service === 'netflix')?.id;
 
     if (!netflixId) {
@@ -36,7 +46,8 @@ export default async function handler(req, res) {
     const m3u8Response = await fetch(`https://proxy.smashystream.com/proxy/echo1/https://pcmirror.cc/hls/${netflixId}.m3u8`);
 
     if (!m3u8Response.ok) {
-      console.error(`Failed to fetch M3U8 playlist. Status: ${m3u8Response.status}`);
+      const errorBody = await m3u8Response.text();
+      console.error(`Failed to fetch M3U8 playlist. Status: ${m3u8Response.status}, Body: ${errorBody}`);
       return res.status(m3u8Response.status).json({ error: 'Failed to fetch M3U8 playlist' });
     }
 
