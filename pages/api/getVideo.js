@@ -58,28 +58,11 @@ export default async function handler(req, res) {
 
         console.log('M3U8 Playlist Data:', m3u8Data.substring(0, 500)); // Log first 500 chars for brevity
 
-        // Filter and format M3U8 playlist
-        let filteredM3u8 = '';
-        let foundFrenchAudio = false;
-        let found720pVideo = false;
-
-        m3u8Data.split('\n').forEach(line => {
-            if (line.includes('#EXT-X-MEDIA') && line.includes('LANGUAGE="fra"')) {
-                filteredM3u8 += line + '\n';
-                foundFrenchAudio = true;
-            } else if (line.includes('#EXT-X-STREAM-INF') && line.includes('RESOLUTION=1280x720')) {
-                filteredM3u8 += line + '\n';
-                found720pVideo = true;
-            } else if (foundFrenchAudio && found720pVideo && line.startsWith('https://')) {
-                filteredM3u8 += line + '\n';
-                foundFrenchAudio = false; // Reset flags after adding URLs
-                found720pVideo = false;
-            }
-        });
-
-        if (!foundFrenchAudio || !found720pVideo) {
-            throw new Error('Required audio or video tracks not found in M3U8 playlist');
-        }
+        // Filter M3U8 playlist for French audio and 720p video
+        const filteredM3u8 = m3u8Data
+            .split('\n')
+            .filter(line => line.includes('LANGUAGE="fra"') || line.includes('720p'))
+            .join('\n');
 
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
         res.status(200).send(filteredM3u8);
