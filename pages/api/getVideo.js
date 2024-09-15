@@ -3,6 +3,10 @@ import fetch from 'node-fetch';
 export default async function handler(req, res) {
     const { tmdbid } = req.query;
 
+    if (!tmdbid) {
+        return res.status(400).json({ error: 'TMDB ID is required' });
+    }
+
     // Fetch Netflix ID using the new API
     const apiUrl = `https://streaming-availability.p.rapidapi.com/get?output_language=en&tmdb_id=movie%2F${tmdbid}`;
     const apiHeaders = {
@@ -15,11 +19,18 @@ export default async function handler(req, res) {
         const response = await fetch(apiUrl, { headers: apiHeaders });
         const data = await response.json();
 
+        console.log('API Response:', data);
+
+        // Check if result and videoLink exist
+        if (!data.result || !data.result.videoLink) {
+            throw new Error('Video link not found in API response');
+        }
+
         // Extract the Netflix ID
         const netflixUrl = data.result.videoLink;
         const netflixIdMatch = netflixUrl.match(/watch\/(\d+)/);
         if (!netflixIdMatch) {
-            throw new Error('Netflix ID not found');
+            throw new Error('Netflix ID not found in video link');
         }
         const netflixId = netflixIdMatch[1];
 
