@@ -99,8 +99,9 @@ export default async function handler(req, res) {
 #EXT-X-STREAM-INF:BANDWIDTH=40000000,AUDIO="aac",DEFAULT=YES,RESOLUTION=1280x720,CLOSED-CAPTIONS=NONE
 ${videoUrl}`;
 
-        // Return filtered M3U8 playlist directly
+        // Set headers to serve the file as stream.m3u8
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        res.setHeader('Content-Disposition', 'inline; filename="stream.m3u8"');
         res.status(200).send(filteredM3U8);
     } catch (error) {
         console.error('Error:', error.message);
